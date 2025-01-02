@@ -7,6 +7,7 @@ import 'package:flutter_blog/ui/pages/post/write_page/post_write_page.dart';
 import 'package:flutter_blog/ui/pages/splash/splash_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+// TODO: 1. 모름
 GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() {
@@ -19,7 +20,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      navigatorKey: navigatorKey, // context가 없는 곳에서 context를 사용할 수 있는 방법
+      navigatorKey: navigatorKey,
+      // context가 없는 곳에서 context를 사용할 수 있는 방법
       debugShowCheckedModeBanner: false,
       home: SplashPage(),
       routes: {
