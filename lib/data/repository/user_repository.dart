@@ -28,4 +28,11 @@ class UserRepository {
     //Logger().d(accessToken);
     return (body, accessToken);
   }
+
+  Future<Map<String, dynamic>> autoLogin(String accessToken) async {
+    Response response = await dio.post("/auto/login",
+        options: Options(headers: {"Authorization": accessToken}));
+    Map<String, dynamic> body = response.data;
+    return body;
+  }
 }

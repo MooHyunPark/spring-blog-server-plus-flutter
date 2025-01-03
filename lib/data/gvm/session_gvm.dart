@@ -3,7 +3,6 @@ import 'package:flutter_blog/_core/utils/my_http.dart';
 import 'package:flutter_blog/data/repository/user_repository.dart';
 import 'package:flutter_blog/main.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:logger/logger.dart';
 
 // 로그인을 하면 username, token 등등을 집어넣고 isLogin은 true로 변경
 class SessionUser {
@@ -12,7 +11,7 @@ class SessionUser {
   String? accessToken;
   bool? isLogin;
 
-  SessionUser({this.id, this.username, this.accessToken, this.isLogin});
+  SessionUser({this.id, this.username, this.accessToken, this.isLogin = false});
 }
 
 // 뷰 모델이 필요 없는 페이지에서 글로벌하게 사용하는 ViewModel (로그인, 회원가입, 내정보수정 등에 사용)
@@ -59,7 +58,7 @@ class SessionGVM extends Notifier<SessionUser> {
     // 3. Dio 토큰 세팅
     dio.options.headers = {"Autohrization": accessToken};
 
-    Logger().d(dio.options.headers);
+    //Logger().d(dio.options.headers);
 
     Navigator.popAndPushNamed(mContext, "/post/list");
   }
@@ -83,15 +82,51 @@ class SessionGVM extends Notifier<SessionUser> {
     Navigator.pushNamed(mContext, "/login");
   }
 
-  Future<void> logout() async {}
+  Future<void> logout() async {
+    // 1. 디바이스 토큰 삭제
+    await secureStorage.delete(key: "accessToken"); // I/O
 
+    // 2. 상태 갱신
+    state = SessionUser(isLogin: false);
+
+    // 3. 화면 이동
+    Navigator.popAndPushNamed(mContext, "/login");
+  }
+
+  // 1. 절대 SessionUser가 있을 수 없다.
   Future<void> autoLogin() async {
-    Future.delayed(
-      Duration(seconds: 3),
-      () {
-        Navigator.popAndPushNamed(mContext, "/login");
-      },
-    );
+    // 1-1. 토큰을 디바이스에서 가져오기
+    String? accessToken = await secureStorage.read(key: "accessToken");
+
+    // 토큰이 없으면 로그인 페이지로
+    if (accessToken == null) {
+      Navigator.popAndPushNamed(mContext, "/login");
+      return;
+    }
+
+    // 토큰을 검증한 뒤 유효한지 검사
+    Map<String, dynamic> responseBody =
+        await userRepository.autoLogin(accessToken);
+
+    // 토큰이 유효하지 않으면 로그인 페이지로
+    if (!responseBody["success"]) {
+      Navigator.popAndPushNamed(mContext, "/login");
+      return;
+    }
+
+    // 상태 갱신
+    Map<String, dynamic> data = responseBody["response"];
+    state = SessionUser(
+        id: data["id"],
+        username: data["username"],
+        accessToken: accessToken,
+        isLogin: true);
+
+    // Dio 토큰 세팅
+    dio.options.headers = {"Autohrization": accessToken};
+
+    // 갱신이 끝난 뒤 메인 화면으로 이동
+    Navigator.popAndPushNamed(mContext, "/post/list");
   }
 }
 
