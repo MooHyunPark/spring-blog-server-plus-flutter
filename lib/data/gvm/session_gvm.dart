@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_blog/_core/utils/my_http.dart';
 import 'package:flutter_blog/data/repository/user_repository.dart';
 import 'package:flutter_blog/main.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logger/logger.dart';
 
 // 로그인을 하면 username, token 등등을 집어넣고 isLogin은 true로 변경
 class SessionUser {
@@ -26,7 +28,41 @@ class SessionGVM extends Notifier<SessionUser> {
         id: null, username: null, accessToken: null, isLogin: false);
   }
 
-  Future<void> login() async {}
+  Future<void> login(String username, String password) async {
+    final body = {
+      "username": username,
+      "password": password,
+    };
+
+    // final 대신 var도 사용 가능
+    final (responseBody, accessToken) =
+        await userRepository.findByUsernameAndPassword(body);
+
+    if (!responseBody["success"]) {
+      ScaffoldMessenger.of(mContext!).showSnackBar(
+        SnackBar(content: Text("로그인 실패 : ${responseBody["errorMessage"]}")),
+      );
+      return;
+    }
+
+    // 1. SessionUser 갱신
+    Map<String, dynamic> data = responseBody["response"];
+    state = SessionUser(
+        id: data["id"],
+        username: data["username"],
+        accessToken: accessToken,
+        isLogin: true);
+
+    // 2. 토큰을 Storage 저장. 오래걸리기 때문에 await 필수
+    await secureStorage.write(key: "accessToken", value: accessToken); // I/O
+
+    // 3. Dio 토큰 세팅
+    dio.options.headers = {"Autohrization": accessToken};
+
+    Logger().d(dio.options.headers);
+
+    Navigator.popAndPushNamed(mContext, "/post/list");
+  }
 
   Future<void> join(String username, String email, String password) async {
     final body = {
@@ -41,19 +77,8 @@ class SessionGVM extends Notifier<SessionUser> {
       ScaffoldMessenger.of(mContext!).showSnackBar(
         SnackBar(content: Text("회원가입 실패 : ${responseBody["errorMessage"]}")),
       );
-      print('여기 오냐?1');
-      print('여기 오냐?1');
-      print('여기 오냐?1');
-      print('여기 오냐?1');
-      print('여기 오냐?1');
       return;
     }
-
-    print('여기 오냐?2');
-    print('여기 오냐?2');
-    print('여기 오냐?2');
-    print('여기 오냐?2');
-    print('여기 오냐?2');
 
     Navigator.pushNamed(mContext, "/login");
   }
