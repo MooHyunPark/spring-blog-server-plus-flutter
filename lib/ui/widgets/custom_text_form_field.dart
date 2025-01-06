@@ -4,7 +4,7 @@ class CustomTextFormField extends StatelessWidget {
   final String hint;
   final bool obscureText;
   final TextEditingController controller;
-  final String? initValue;
+  final String initValue;
 
   const CustomTextFormField({
     Key? key,
@@ -16,8 +16,8 @@ class CustomTextFormField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (initValue != null) {
-      controller.text = initValue!;
+    if (initValue.isNotEmpty) {
+      controller.text = initValue;
     }
     return TextFormField(
       controller: controller,

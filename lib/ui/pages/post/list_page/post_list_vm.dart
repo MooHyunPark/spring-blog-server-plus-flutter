@@ -13,6 +13,14 @@ class PostListModel {
   int totalPage;
   List<Post> posts;
 
+  PostListModel(
+      {required this.isFirst,
+      required this.isLast,
+      required this.pageNumber,
+      required this.size,
+      required this.totalPage,
+      required this.posts});
+
   PostListModel.fromMap(Map<String, dynamic> map)
       : isFirst = map["isFirst"],
         isLast = map["isLast"],
@@ -22,6 +30,22 @@ class PostListModel {
         posts = (map["posts"] as List<dynamic>)
             .map((e) => Post.fromMap(e))
             .toList();
+
+  PostListModel copyWith(
+      {bool? isFirst,
+      bool? isLast,
+      int? pageNumber,
+      int? size,
+      int? totalPage,
+      List<Post>? posts}) {
+    return PostListModel(
+        isFirst: isFirst ?? this.isFirst,
+        isLast: isLast ?? this.isLast,
+        pageNumber: pageNumber ?? this.pageNumber,
+        size: size ?? this.size,
+        totalPage: totalPage ?? this.totalPage,
+        posts: posts ?? this.posts);
+  }
 }
 
 final postListProvider = NotifierProvider<PostListVM, PostListModel?>(() {
@@ -44,14 +68,30 @@ class PostListVM extends Notifier<PostListModel?> {
     print(responseBody.toString());
 
     if (!responseBody["success"]) {
-      print('시발2');
       ScaffoldMessenger.of(mContext!).showSnackBar(
         SnackBar(
             content: Text("게시글 목록 보기 실패 : ${responseBody["errorMessage"]}")),
       );
       return;
     }
-    print('시발3');
     state = PostListModel.fromMap(responseBody["response"]);
+  }
+
+  void remove(int? id) {
+    PostListModel model = state!;
+    model.posts = model.posts.where((p) => p.id != id).toList();
+    state = state!.copyWith(posts: model.posts);
+  }
+
+  void add(Post post) {
+    PostListModel model = state!;
+    model.posts = [post, ...model.posts];
+    state = state!.copyWith(posts: model.posts);
+  }
+
+  void search(int? id) {
+    PostListModel model = state!;
+    model.posts = model.posts.where((p) => p.id == id).toList();
+    state = state!.copyWith(posts: model.posts);
   }
 }
