@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_blog/data/repository/post_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 import '../../../../data/model/Post.dart';
 import '../../../../main.dart';
@@ -53,18 +54,21 @@ final postListProvider = NotifierProvider<PostListVM, PostListModel?>(() {
 });
 
 class PostListVM extends Notifier<PostListModel?> {
+  // 슬라이드를 통해 새로고침 할 때 필요함
+  final refreshCtrl = RefreshController();
+
   final mContext = navigatorKey.currentContext!;
   PostRepository postRepository = const PostRepository();
 
   @override
   PostListModel? build() {
-    init(0);
+    init();
     return null;
   }
 
-  Future<void> init(int page) async {
-    Map<String, dynamic> responseBody =
-        await postRepository.findAll(page: page);
+  // 1. 페이지 초기화
+  Future<void> init() async {
+    Map<String, dynamic> responseBody = await postRepository.findAll();
     print(responseBody.toString());
 
     if (!responseBody["success"]) {
@@ -75,6 +79,8 @@ class PostListVM extends Notifier<PostListModel?> {
       return;
     }
     state = PostListModel.fromMap(responseBody["response"]);
+    // init 메서드가 종료되면, ui 도는것을 멈추게 함
+    refreshCtrl.refreshCompleted();
   }
 
   void remove(int? id) {
@@ -93,5 +99,33 @@ class PostListVM extends Notifier<PostListModel?> {
     PostListModel model = state!;
     model.posts = model.posts.where((p) => p.id == id).toList();
     state = state!.copyWith(posts: model.posts);
+  }
+
+  // 2. 페이징 로드
+  Future<void> nextList() async {
+    PostListModel postListModel = state!;
+
+    // 마지막 페이지라면 추가 로드를 하지 않음
+    if (postListModel.isLast) {
+      await Future.delayed(Duration(milliseconds: 500));
+      refreshCtrl.loadComplete();
+      return;
+    }
+
+    Map<String, dynamic> responseBody =
+        await postRepository.findAll(page: state!.pageNumber + 1);
+    print(responseBody.toString());
+
+    if (!responseBody["success"]) {
+      ScaffoldMessenger.of(mContext!).showSnackBar(
+        SnackBar(content: Text("게시글 로드 실패 : ${responseBody["errorMessage"]}")),
+      );
+      return;
+    }
+
+    PostListModel prevModel = state!;
+    PostListModel nextModel = PostListModel.fromMap(responseBody["response"]);
+    state = nextModel.copyWith(posts: [...prevModel.posts, ...nextModel.posts]);
+    refreshCtrl.loadComplete();
   }
 }
