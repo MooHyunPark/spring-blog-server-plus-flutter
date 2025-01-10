@@ -9,7 +9,13 @@ import '../../../../main.dart';
 class PostDetailModel {
   Post post;
 
+  PostDetailModel({required this.post});
+
   PostDetailModel.fromMap(Map<String, dynamic> map) : post = Post.fromMap(map);
+
+  PostDetailModel copyWith({Post? post}) {
+    return PostDetailModel(post: post ?? this.post);
+  }
 }
 
 // autoDispose를 적게되면 화면 파괴시 vm도 같이 삭제시켜준다.
@@ -57,5 +63,14 @@ class PostDetailVM extends AutoDisposeFamilyNotifier<PostDetailModel?, int> {
 
     // 화면 파괴시 autoDispose 됨
     Navigator.pop(mContext);
+  }
+
+  void update(String title, String content) {
+    PostDetailModel model = state!;
+    Post post = model.post;
+    post.title = title;
+    post.content = content;
+
+    state = model.copyWith(post: post);
   }
 }

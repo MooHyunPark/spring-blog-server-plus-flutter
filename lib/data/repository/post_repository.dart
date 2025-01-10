@@ -24,9 +24,16 @@ class PostRepository {
 
   // 게시글 삭제
   Future<Map<String, dynamic>> deleteById(int? id) async {
-    Response response = await dio.delete("/api/post/$id");
+    Response response = await dio.put("/api/post/$id");
     Map<String, dynamic> body = response.data;
 
+    return body;
+  }
+
+  Future<Map<String, dynamic>> postUpdate(
+      int postId, Map<String, dynamic> data) async {
+    Response response = await dio.put("/api/post/$postId", data: data);
+    Map<String, dynamic> body = response.data;
     return body;
   }
 }

@@ -87,8 +87,8 @@ class SessionGVM extends Notifier<SessionUser> {
     // 3. dio 갱신
     dio.options.headers["Authorization"] = "";
 
-    // 4. 화면이동
-    Navigator.popAndPushNamed(mContext, "/login");
+    // 4. 모든 화면을 파괴하고 로그인 페이지로 이동
+    Navigator.pushNamedAndRemoveUntil(mContext, "/login", (route) => false);
   }
 
   // 1. 절대 SessionUser가 있을 수가 없다.

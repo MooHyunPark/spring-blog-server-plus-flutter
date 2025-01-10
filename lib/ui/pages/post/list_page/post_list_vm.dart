@@ -49,11 +49,12 @@ class PostListModel {
   }
 }
 
-final postListProvider = NotifierProvider<PostListVM, PostListModel?>(() {
+final postListProvider =
+    NotifierProvider.autoDispose<PostListVM, PostListModel?>(() {
   return PostListVM();
 });
 
-class PostListVM extends Notifier<PostListModel?> {
+class PostListVM extends AutoDisposeNotifier<PostListModel?> {
   // 슬라이드를 통해 새로고침 할 때 필요함
   final refreshCtrl = RefreshController();
 
@@ -62,6 +63,13 @@ class PostListVM extends Notifier<PostListModel?> {
 
   @override
   PostListModel? build() {
+    // 가비지 컬렉션이 바로 정리하지 않을 수 있기 때문에 직접 닫아준다.
+    ref.onDispose(
+      () {
+        refreshCtrl.dispose();
+      },
+    );
+
     init();
     return null;
   }
@@ -69,7 +77,6 @@ class PostListVM extends Notifier<PostListModel?> {
   // 1. 페이지 초기화
   Future<void> init() async {
     Map<String, dynamic> responseBody = await postRepository.findAll();
-    print(responseBody.toString());
 
     if (!responseBody["success"]) {
       ScaffoldMessenger.of(mContext!).showSnackBar(
@@ -114,7 +121,6 @@ class PostListVM extends Notifier<PostListModel?> {
 
     Map<String, dynamic> responseBody =
         await postRepository.findAll(page: state!.pageNumber + 1);
-    print(responseBody.toString());
 
     if (!responseBody["success"]) {
       ScaffoldMessenger.of(mContext!).showSnackBar(
@@ -127,5 +133,19 @@ class PostListVM extends Notifier<PostListModel?> {
     PostListModel nextModel = PostListModel.fromMap(responseBody["response"]);
     state = nextModel.copyWith(posts: [...prevModel.posts, ...nextModel.posts]);
     refreshCtrl.loadComplete();
+  }
+
+  void update(int postId, String title, String content) {
+    PostListModel model = state!;
+    List<Post> postList = model.posts.map(
+      (e) {
+        if (e.id == postId) {
+          e.title = title;
+          e.content = content;
+        }
+        return e;
+      },
+    ).toList();
+    state = model.copyWith(posts: postList);
   }
 }
